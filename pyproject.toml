@@ -1,0 +1,17 @@
+[project]
+name = "company-deep-analyzer"
+version = "1.0.0"
+description = "Systematic framework for deep company and business model analysis using multi-agent conversation"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "anthropic>=0.40.0",
+    "rich>=13.0.0",
+]
+
+[project.scripts]
+analyze = "main:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
