@@ -1,0 +1,10 @@
+2025-12-26 11:35:58,910 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:35:59,251 - INFO - 手动添加 40 条价格记录
+2025-12-26 11:35:59,253 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:35:59,436 - INFO - 手动添加 20 条价格记录
+2025-12-26 11:35:59,438 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:36:13,928 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:36:22,598 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:36:22,837 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:36:31,042 - INFO - 数据库初始化完成: wine_prices_daily.db
+2025-12-26 11:36:31,044 - INFO - 导出 34 条记录到 wine_prices_20251226.csv
