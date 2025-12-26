@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-迁移现有数据到统一的日价数据库
+迁移数据到分表结构
 """
 
 import sqlite3
-from daily_scraper import WinePriceDB, WinePrice, DailyScraper
-from datetime import datetime
+from daily_scraper import WinePriceDB, DailyScraper
 
-def migrate_from_old_db():
-    """从旧数据库迁移数据"""
+def migrate():
+    """迁移旧数据到新的分表结构"""
     old_db = "buerjjiang_wine.db"
-    new_db = WinePriceDB("wine_prices_daily.db")
-    scraper = DailyScraper(new_db)
+
+    db = WinePriceDB("wine_prices_daily.db")
+    scraper = DailyScraper(db)
 
     try:
         conn = sqlite3.connect(old_db)
@@ -23,22 +23,36 @@ def migrate_from_old_db():
         rows = cursor.fetchall()
         conn.close()
 
-        prices_data = []
+        jrjj_data = []  # 今日酒价
+        bej_data = []   # 不二酱
+
         for row in rows:
             name, price, change, date, source = row
             if not date or not price:
                 continue
-            prices_data.append({
+
+            item = {
                 'name': name,
                 'price': price,
                 'change': change or '',
-                'date': date,
-                'source': '今日酒价' if '今日酒价' in (source or '') else '不二酱'
-            })
+                'date': date
+            }
 
-        count = scraper.add_manual_prices(prices_data)
-        print(f"从旧数据库迁移了 {count} 条记录")
-        return count
+            # 根据来源分类
+            if '今日酒价' in (source or ''):
+                jrjj_data.append(item)
+            else:
+                bej_data.append(item)
+
+        # 保存到各自的表
+        count1 = scraper.add_prices('今日酒价', jrjj_data)
+        count2 = scraper.add_prices('不二酱', bej_data)
+
+        print(f"迁移完成:")
+        print(f"  今日酒价: {count1} 条")
+        print(f"  不二酱:   {count2} 条")
+
+        return count1 + count2
 
     except Exception as e:
         print(f"迁移失败: {e}")
@@ -46,65 +60,69 @@ def migrate_from_old_db():
 
 
 def add_sample_data():
-    """添加示例数据（用于测试）"""
+    """添加示例数据"""
     db = WinePriceDB("wine_prices_daily.db")
     scraper = DailyScraper(db)
 
-    # 2025年12月数据
-    sample_prices = [
-        # 12月26日
-        {'date': '2025-12-26', 'name': '飞天茅台', 'price': 1602, 'change': '↑2', 'source': '今日酒价'},
-        {'date': '2025-12-26', 'name': '精品茅台', 'price': 2308, 'change': '↑28', 'source': '今日酒价'},
-        {'date': '2025-12-26', 'name': '古井贡古20', 'price': 520, 'change': '↑7', 'source': '今日酒价'},
-        {'date': '2025-12-26', 'name': '青花郎', 'price': 680, 'change': '↑5', 'source': '今日酒价'},
-        {'date': '2025-12-26', 'name': '国窖1573', 'price': 830, 'change': '↑2', 'source': '今日酒价'},
-        {'date': '2025-12-26', 'name': '五粮液普五八代', 'price': 920, 'change': '↓4', 'source': '今日酒价'},
-
-        # 12月24日
-        {'date': '2025-12-24', 'name': '25年飞天原箱', 'price': 1600, 'change': '↑40', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '25年飞天散瓶', 'price': 1590, 'change': '↑40', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '24年飞天原箱', 'price': 1630, 'change': '↑30', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '24年飞天散瓶', 'price': 1615, 'change': '↑35', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '散花飞天', 'price': 2480, 'change': '↑100', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '茅台十五年', 'price': 4150, 'change': '↑80', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '精品茅台', 'price': 2280, 'change': '↑30', 'source': '今日酒价'},
-        {'date': '2025-12-24', 'name': '生肖蛇原箱', 'price': 2000, 'change': '↑230', 'source': '不二酱'},
-        {'date': '2025-12-24', 'name': '彩釉珍品', 'price': 3250, 'change': '', 'source': '不二酱'},
-
-        # 12月15日
-        {'date': '2025-12-15', 'name': '散花飞天', 'price': 2200, 'change': '', 'source': '今日酒价'},
-        {'date': '2025-12-15', 'name': '茅台十五年', 'price': 3600, 'change': '', 'source': '今日酒价'},
-        {'date': '2025-12-15', 'name': '25年飞天散瓶', 'price': 1560, 'change': '', 'source': '今日酒价'},
-
-        # 12月12日 - 跌破指导价
-        {'date': '2025-12-12', 'name': '25年飞天原箱', 'price': 1495, 'change': '↓15', 'source': '今日酒价'},
-        {'date': '2025-12-12', 'name': '25年飞天散瓶', 'price': 1485, 'change': '↓15', 'source': '今日酒价'},
+    # 今日酒价数据
+    jrjj_prices = [
+        {'date': '2025-12-26', 'name': '飞天茅台', 'price': 1602, 'change': '↑2'},
+        {'date': '2025-12-26', 'name': '精品茅台', 'price': 2308, 'change': '↑28'},
+        {'date': '2025-12-26', 'name': '国窖1573', 'price': 830, 'change': '↑2'},
+        {'date': '2025-12-26', 'name': '五粮液普五八代', 'price': 920, 'change': '↓4'},
+        {'date': '2025-12-26', 'name': '青花郎', 'price': 680, 'change': '↑5'},
+        {'date': '2025-12-24', 'name': '25年飞天原箱', 'price': 1600, 'change': '↑40'},
+        {'date': '2025-12-24', 'name': '25年飞天散瓶', 'price': 1590, 'change': '↑40'},
+        {'date': '2025-12-24', 'name': '散花飞天', 'price': 2480, 'change': '↑100'},
+        {'date': '2025-12-24', 'name': '茅台十五年', 'price': 4150, 'change': '↑80'},
+        {'date': '2025-12-12', 'name': '25年飞天散瓶', 'price': 1485, 'change': '↓15'},
     ]
 
-    count = scraper.add_manual_prices(sample_prices)
-    print(f"添加了 {count} 条示例数据")
-    return count
+    # 不二酱数据
+    bej_prices = [
+        {'date': '2025-12-24', 'name': '生肖蛇原箱', 'price': 2000, 'change': '↑230'},
+        {'date': '2025-12-24', 'name': '彩釉珍品', 'price': 3250, 'change': ''},
+        {'date': '2025-12-15', 'name': '生肖蛇原箱', 'price': 1610, 'change': ''},
+        {'date': '2025-12-15', 'name': '散花飞天', 'price': 2200, 'change': ''},
+        {'date': '2024-12-05', 'name': '飞天原箱', 'price': 2290, 'change': '↑55'},
+        {'date': '2024-12-05', 'name': '飞天散瓶', 'price': 2210, 'change': '↑20'},
+        {'date': '2024-11-03', 'name': '飞天原箱', 'price': 2280, 'change': '↑50'},
+    ]
+
+    count1 = scraper.add_prices('今日酒价', jrjj_prices)
+    count2 = scraper.add_prices('不二酱', bej_prices)
+
+    print(f"\n添加示例数据:")
+    print(f"  今日酒价: {count1} 条")
+    print(f"  不二酱:   {count2} 条")
 
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("数据迁移工具")
+    print("数据迁移 (分表版)")
     print("=" * 50)
 
-    # 先迁移旧数据
-    print("\n1. 迁移旧数据库...")
-    migrate_from_old_db()
+    # 删除旧的统一表数据库，重新创建
+    import os
+    if os.path.exists("wine_prices_daily.db"):
+        os.remove("wine_prices_daily.db")
+        print("\n已清除旧数据库")
 
-    # 添加示例数据
-    print("\n2. 添加最新数据...")
+    print("\n1. 迁移旧数据...")
+    migrate()
+
+    print("\n2. 添加示例数据...")
     add_sample_data()
 
     # 显示统计
     db = WinePriceDB("wine_prices_daily.db")
     stats = db.get_stats()
+
     print(f"\n{'='*50}")
     print("迁移完成!")
-    print(f"{'='*50}")
-    print(f"总记录数: {stats['total_records']}")
-    print(f"覆盖天数: {stats['total_days']}")
-    print(f"时间范围: {stats['date_range']}")
+    print('='*50)
+    for table, s in stats.items():
+        name = '今日酒价' if table == 'jinrijiujia' else '不二酱'
+        print(f"\n【{name}】")
+        print(f"  记录数: {s['total']}")
+        print(f"  范围:   {s['range']}")
